@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Sparkles, ListOrdered } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import { ManualStep } from "@/data/openingManual";
 
 interface ManualProgressBarProps {
@@ -21,38 +21,40 @@ export const ManualProgressBar: React.FC<ManualProgressBarProps> = ({
   const isAllCompleted = completed === total;
 
   return (
-    <div className="no-print sticky top-4 z-30 mb-8 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-md p-4 transition-all">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className={`p-2 rounded-xl flex items-center justify-center transition-colors ${
-            isAllCompleted
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-              : "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
-          }`}>
+    <div className="no-print sticky top-20 z-30 mb-8 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md shadow-sm p-4 transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+              isAllCompleted
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
+            }`}
+          >
             {isAllCompleted ? (
-              <Sparkles className="w-5 h-5 text-emerald-600 animate-bounce" />
+              <Sparkles className="w-4 h-4 text-white animate-pulse" />
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             )}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-neutral-900 dark:text-white">
-                출근 점검 진행률
+              <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wide">
+                자가점검 진행률
               </span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-mono">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50">
                 {percentage}%
               </span>
             </div>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              총 {total}단계 중 <strong className="text-emerald-700 dark:text-emerald-400 font-semibold">{completed}개</strong> 완료됨
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+              전체 {total}개 항목 중 <span className="font-semibold text-neutral-800 dark:text-neutral-200">{completed}개</span> 점검 완료
             </p>
           </div>
         </div>
 
-        {/* Quick jump step badges */}
+        {/* Quick step jump buttons */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-neutral-400 font-medium hidden md:inline">빠른 이동:</span>
+          <span className="text-[11px] text-neutral-400 font-medium mr-1 hidden md:inline">항목 바로가기:</span>
           {steps.map((s) => {
             const isDone = completedIds.includes(s.id);
             return (
@@ -60,10 +62,10 @@ export const ManualProgressBar: React.FC<ManualProgressBarProps> = ({
                 key={s.id}
                 onClick={() => onStepClick(s.id)}
                 type="button"
-                className={`w-7 h-7 rounded-lg text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer ${
+                className={`w-7 h-7 rounded-lg text-xs font-mono font-semibold transition-all flex items-center justify-center cursor-pointer ${
                   isDone
-                    ? "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/30"
-                    : "bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300"
+                    ? "bg-emerald-700 text-white shadow-xs"
+                    : "bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
                 }`}
                 title={`Step ${s.id}: ${s.title}`}
               >
@@ -74,19 +76,23 @@ export const ManualProgressBar: React.FC<ManualProgressBarProps> = ({
         </div>
       </div>
 
-      {/* Progress Bar Track */}
-      <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2.5 overflow-hidden shadow-inner">
+      {/* Progress Bar Line */}
+      <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
         <div
-          className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 h-2.5 rounded-full transition-all duration-500 ease-out"
+          className="bg-emerald-600 dark:bg-emerald-500 h-2 rounded-full transition-all duration-300 ease-out"
           style={{ width: `${percentage}%` }}
         />
       </div>
 
-      {/* All Complete Message */}
       {isAllCompleted && (
-        <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center justify-center gap-2 animate-in fade-in">
-          <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>모든 오픈 점검 단계가 완료되었습니다! 일지에 서명 후 입실을 시작해 주세요.</span>
+        <div className="mt-2.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
+          <span className="flex items-center gap-1.5 font-medium">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            모든 오픈 점검을 완료했습니다. 이제 안전하게 이용자를 맞이할 수 있습니다.
+          </span>
+          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+            점검 완료 상태
+          </span>
         </div>
       )}
     </div>
