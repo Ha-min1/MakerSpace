@@ -151,3 +151,15 @@
    - 공식 사이트: https://kusf.konkuk.ac.kr/kusf/index.do
    - 주소 및 연락처: 05029 서울시 광진구 능동로 120 건국대학교 TEL. 02-450-3114
    - 총괄 담당: 조하민 (johamin3624@konkuk.ac.kr)
+
+## 9. OpeningManual_1 ~ 24 전체 사진 규격화 완료 (2026-09-04 업데이트)
+
+1. **카카오톡 사진 파일명 리네이밍 및 1~24번 연속성 확보**:
+   - `KakaoTalk_..._18.jpg` -> `OpeningManual_19.jpg`
+   - `KakaoTalk_..._19.jpg` -> `OpeningManual_20.jpg`
+   - `KakaoTalk_..._20.jpg` -> `OpeningManual_21.jpg`
+   - `KakaoTalk_..._21.jpg` -> `OpeningManual_22.jpg`
+   - `KakaoTalk_..._22.jpg` -> `OpeningManual_23.jpg`
+   - `KakaoTalk_..._23.jpg` -> `OpeningManual_24.jpg`
+2. **동적 섹션 확장 동작 확인**:
+   - 총 24개 사진이 `public/manual/`에 완전 정렬되어, 사이트에서 1번부터 24번까지의 자가점검 섹션이 자동으로 렌더링됨.
