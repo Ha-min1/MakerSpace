@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8faf9;
+  --foreground: #141f17;
+  --ku-green: #004d25;
+  --ku-green-hover: #0a6332;
+  --ku-green-light: #e8f5ed;
+  --ku-green-border: #b7e0c7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0d1410;
+    --foreground: #eef4f0;
+    --ku-green-light: #163322;
+    --ku-green-border: #234d34;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo',
+    'Malgun Gothic', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Print CSS Optimization for PDF Export */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 12mm 15mm 12mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .manual-step-card {
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1.25rem !important;
+  }
+
+  /* Ensure colors and backgrounds print clearly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
