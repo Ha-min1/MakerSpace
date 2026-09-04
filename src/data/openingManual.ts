@@ -9,6 +9,7 @@ export interface ManualStep {
   linkUrl?: string;
   linkText?: string;
   imageName: string;
+  imageNames?: string[];
   estimatedMinutes?: number;
 }
 
@@ -69,6 +70,7 @@ export const openingManualSteps: ManualStep[] = [
       "스위치 ON 조작 및 메인 통로/테이블 라인 조명 점등 확인",
     ],
     imageName: "OpeningManual_2.jpg",
+    imageNames: ["OpeningManual_2.jpg", "OpeningManual_2_1.jpg"],
     estimatedMinutes: 2,
   },
   {

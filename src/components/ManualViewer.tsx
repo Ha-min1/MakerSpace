@@ -76,7 +76,12 @@ interface ManualViewerProps {
 
 export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
   const [completedIds, setCompletedIds] = useState<number[]>([]);
-  const [zoomedImage, setZoomedImage] = useState<{ src: string; title: string } | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<{
+    src: string;
+    title: string;
+    images?: string[];
+    currentIndex?: number;
+  } | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ManualTab>("opening");
   const [previewTab, setPreviewTab] = useState<TabInfo | null>(null);
@@ -235,7 +240,14 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
                   step={step}
                   isCompleted={completedIds.includes(step.id)}
                   onToggleComplete={handleToggleComplete}
-                  onZoomImage={(src, title) => setZoomedImage({ src, title })}
+                  onZoomImage={(src, title, stepImages, initialIndex) =>
+                    setZoomedImage({
+                      src,
+                      title,
+                      images: stepImages,
+                      currentIndex: initialIndex ?? 0,
+                    })
+                  }
                 />
               ))}
             </div>
@@ -409,6 +421,17 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
       <ImageLightboxModal
         src={zoomedImage?.src ?? null}
         title={zoomedImage?.title ?? null}
+        images={zoomedImage?.images}
+        currentIndex={zoomedImage?.currentIndex ?? 0}
+        onNavigate={(newIndex) => {
+          if (zoomedImage && zoomedImage.images) {
+            setZoomedImage({
+              ...zoomedImage,
+              src: `/manual/${zoomedImage.images[newIndex]}`,
+              currentIndex: newIndex,
+            });
+          }
+        }}
         onClose={() => setZoomedImage(null)}
       />
 

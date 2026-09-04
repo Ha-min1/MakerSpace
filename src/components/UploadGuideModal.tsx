@@ -56,16 +56,20 @@ export const UploadGuideModal: React.FC<UploadGuideModalProps> = ({ isOpen, onCl
 
           <div className="p-3.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/80 dark:border-neutral-800">
             <div className="font-bold text-neutral-900 dark:text-white mb-1 flex items-center gap-1.5">
-              <span>2. 파일 이름 규칙</span>
+              <span>2. 파일 이름 규칙 (단일 및 다중 분할)</span>
             </div>
-            <p className="mb-2">
-              각 단계 번호에 맞춰 언더바(_) 형식으로 지정합니다:
+            <p className="mb-2 text-xs">
+              각 단계 번호에 맞춰 언더바(_) 형식으로 지정하며, 같은 항목에 사진이 여러 장일 경우 언더바 뒤에 서브 번호를 붙이면 자동으로 양옆 분할(2분할, 3중 분할 등)되어 표시됩니다:
             </p>
-            <div className="flex flex-wrap gap-1.5 font-mono text-[11px]">
-              <span className="px-2 py-0.5 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">OpeningManual_1.jpg</span>
-              <span className="px-2 py-0.5 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">OpeningManual_2.jpg</span>
-              <span className="px-2 py-0.5 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">... OpeningManual_8.jpg</span>
+            <div className="flex flex-wrap gap-1.5 font-mono text-[11px] mb-2">
+              <span className="px-2 py-0.5 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">OpeningManual_1.jpg (단독 1장)</span>
+              <span className="px-2 py-0.5 rounded bg-white dark:bg-neutral-900 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300">OpeningManual_2.jpg (2번 기본 좌측)</span>
+              <span className="px-2 py-0.5 rounded bg-white dark:bg-neutral-900 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300">OpeningManual_2_1.jpg (2번 세부 우측)</span>
+              <span className="px-2 py-0.5 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">OpeningManual_2_1_2.jpg (3중 분할 3번째)</span>
             </div>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+              ※ 1장만 있을 때는 전체 크기로 표시되고, 2장이면 양옆 2분할, 3장 이상이면 3중 분할 등으로 자동 전환됩니다.
+            </p>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/80 dark:border-neutral-800">
