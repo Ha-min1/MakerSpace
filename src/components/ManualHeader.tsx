@@ -60,7 +60,7 @@ export const ManualHeader: React.FC<ManualHeaderProps> = ({
               </span>
               <span className="inline-flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium">
                 <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                담당: {manualMeta.managerName} ({manualMeta.managerEmail})
+                사이트 담당: {manualMeta.managerName} ({manualMeta.managerEmail})
               </span>
             </div>
           </div>

@@ -265,7 +265,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
               </div>
               <div>
                 <span className="text-[11px] font-semibold text-neutral-400 block uppercase">
-                  메이커스페이스 총괄 담당
+                  메이커스페이스 사이트 담당
                 </span>
                 <strong className="text-sm font-bold text-neutral-900 dark:text-white block mt-0.5">
                   {manualMeta.managerName}
@@ -318,7 +318,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
             {manualMeta.address} • TEL. {manualMeta.tel}
           </p>
           <p className="text-[11px] text-neutral-500">
-            총괄 담당: {manualMeta.managerName} (<a href={`mailto:${manualMeta.managerEmail}`} className="hover:underline text-emerald-700 dark:text-emerald-400">{manualMeta.managerEmail}</a>)
+            사이트 담당: {manualMeta.managerName} (<a href={`mailto:${manualMeta.managerEmail}`} className="hover:underline text-emerald-700 dark:text-emerald-400">{manualMeta.managerEmail}</a>)
             &nbsp;|&nbsp;
             <a href={manualMeta.officialSiteUrl} target="_blank" rel="noopener noreferrer" className="hover:underline text-emerald-700 dark:text-emerald-400">
               공식 웹사이트 바로가기
