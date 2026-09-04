@@ -7,15 +7,15 @@ import { ManualProgressBar } from "@/components/ManualProgressBar";
 import { ManualStepCard } from "@/components/ManualStepCard";
 import { ImageLightboxModal } from "@/components/ImageLightboxModal";
 import { UploadGuideModal } from "@/components/UploadGuideModal";
+import { StaffManualView } from "@/components/StaffManualView";
 import {
   Mail,
-  ShieldAlert,
   ArrowUp,
   FileCheck2,
   ExternalLink,
-  Phone,
-  MapPin,
-  Building2
+  Building2,
+  BookOpen,
+  CheckSquare
 } from "lucide-react";
 
 type ManualTab = "opening" | "closing" | "staff";
@@ -32,13 +32,16 @@ const TA_3_TABS: TabInfo[] = [
   {
     id: "opening",
     title: "오픈 자가점검",
-    desc: "출근 직후 행정실 확인, 시설 개방, 조명, 공조 환기, 3D프린터실 점검 등 일일 오픈 루틴",
+    desc: "출근 직후 행정실 확인, 시설 개방, 조명, 공조 환기 등 일일 오픈 루틴 (24개 항목)",
     items: [
-      "행정 문의 공식 사이트 안내 및 117호 행정실 확인",
-      "메인 오픈 작업 공간 및 실내 조명 점등",
-      "실습 구역 스위치 점검 및 공조 배기 가동",
-      "115호 3D프린터실 도어락 및 입구 점검",
-      "신규 사진 추가 시 자동 확장되는 점검 항목"
+      "사무실 좌측 기둥 불키기 (행정문의 공식 사이트 안내)",
+      "마주보는 반대편 기둥 불키기",
+      "직진후 좌회전 VR실 문 열기",
+      "문 열면 정면에 VR실 불 키는 버튼",
+      "나와서 좌회전 출입구 열려있는지 확인 및 불 키기",
+      "유턴해서 직진 후 왼쪽 기둥 코너에서 에어컨 3개 및 불 모두 키기",
+      "왼쪽 2단 좌석 좌측 끝쪽 기둥에서 좌석 하단 불 키기",
+      "8~24번 사진 매칭 점검 항목"
     ],
   },
   {
@@ -57,13 +60,12 @@ const TA_3_TABS: TabInfo[] = [
   {
     id: "staff",
     title: "조교/근로학생 업무 매뉴얼",
-    badge: "준비 중",
-    desc: "이용자 안전교육 이수 확인, 장비 사용 지도, 노쇼 규정, 소모품 수령 및 비상 프로토콜",
+    desc: "근로 기본 수칙, 근무 시간(학기/방학), 공간 미화 루틴, 3D프린터실·VR실 사용 신청 지침",
     items: [
-      "학생 안전교육 이수증 조회 및 출입 지도 절차",
-      "보안경/작업복 미착용 시 이용 제한 규정",
-      "예약 노쇼(No-Show) 처리 및 패널티 부여 지침",
-      "비상 상황(화재, 부상) 발생 시 조하민 조교 핫라인 및 119 보고 요령"
+      "근로 기본 수칙 (인사, 일정 조정 일주일 전, 방문객 응대, 부재중 메모)",
+      "근무 시간 규정 (근로학생 9~17:30 / 조교 9~20시)",
+      "공간 미화 & 환경 정비 (오전 출근, 1층 청소, 20시 퇴근 소등)",
+      "공간 사용 안내 (3D프린터실 K-MOOC 4강 이수, VR실 신청서 및 1주 연장)"
     ],
   },
 ];
@@ -177,8 +179,8 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
                 <button
                   key={tab.id}
                   onClick={() => {
-                    if (tab.id === "opening") {
-                      setActiveTab("opening");
+                    if (tab.id === "opening" || tab.id === "staff") {
+                      setActiveTab(tab.id);
                     } else {
                       setPreviewTab(tab);
                     }
@@ -190,6 +192,8 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
                       : "bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600"
                   }`}
                 >
+                  {tab.id === "opening" && <CheckSquare className="w-3.5 h-3.5" />}
+                  {tab.id === "staff" && <BookOpen className="w-3.5 h-3.5" />}
                   <span>{tab.title}</span>
                   {tab.badge && !isActive && (
                     <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-neutral-100 text-neutral-500 dark:bg-neutral-700 dark:text-neutral-300">
@@ -205,33 +209,43 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8">
-        {/* Header Section */}
-        <ManualHeader
-          completedCount={completedIds.length}
-          totalCount={initialSteps.length}
-          onReset={handleReset}
-          onOpenGuide={() => setIsGuideOpen(true)}
-        />
-
-        {/* Progress Bar & Quick Step Access */}
-        <ManualProgressBar
-          steps={initialSteps}
-          completedIds={completedIds}
-          onStepClick={handleStepClick}
-        />
-
-        {/* Dynamic Step-by-step Cards (Automatically expanded by images!) */}
-        <div className="space-y-6">
-          {initialSteps.map((step) => (
-            <ManualStepCard
-              key={step.id}
-              step={step}
-              isCompleted={completedIds.includes(step.id)}
-              onToggleComplete={handleToggleComplete}
-              onZoomImage={(src, title) => setZoomedImage({ src, title })}
+        {/* TAB 1: 오픈 자가점검 */}
+        {activeTab === "opening" && (
+          <div className="space-y-6">
+            {/* Header Section */}
+            <ManualHeader
+              completedCount={completedIds.length}
+              totalCount={initialSteps.length}
+              onReset={handleReset}
+              onOpenGuide={() => setIsGuideOpen(true)}
             />
-          ))}
-        </div>
+
+            {/* Progress Bar & Quick Step Access */}
+            <ManualProgressBar
+              steps={initialSteps}
+              completedIds={completedIds}
+              onStepClick={handleStepClick}
+            />
+
+            {/* Dynamic Step Cards (1 to 24) */}
+            <div className="space-y-6">
+              {initialSteps.map((step) => (
+                <ManualStepCard
+                  key={step.id}
+                  step={step}
+                  isCompleted={completedIds.includes(step.id)}
+                  onToggleComplete={handleToggleComplete}
+                  onZoomImage={(src, title) => setZoomedImage({ src, title })}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: 조교 / 근로학생 업무 매뉴얼 */}
+        {activeTab === "staff" && (
+          <StaffManualView onPrint={() => window.print()} />
+        )}
 
         {/* Bottom Emergency & Manager Contact Card */}
         <div className="mt-12 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 sm:p-8 no-print shadow-xs">
@@ -240,11 +254,11 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
                 <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                  오픈 자가점검 완료 및 행정 문의처
+                  메이커스페이스 안내 및 행정 문의처
                 </h3>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                점검 도중 장비 이상 또는 행정 문의 발생 시 아래 연락처로 즉시 알려주세요.
+                공간 이용, 장비 점검 및 행정 관련 문의는 아래 연락처를 확인해 주세요.
               </p>
             </div>
 
@@ -258,7 +272,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
-            {/* Manager Contact Box */}
+            {/* Site Manager Box */}
             <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/70 dark:border-neutral-800 flex items-start gap-3.5">
               <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
                 <Mail className="w-4 h-4" />
@@ -330,7 +344,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
         </div>
       </footer>
 
-      {/* Preview Modal for Closing and Staff Manuals */}
+      {/* Preview Modal for Closing Manual */}
       {previewTab && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
@@ -375,7 +389,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
               </div>
 
               <p className="text-[11px] text-neutral-400">
-                해당 매뉴얼 내용 및 사진도 준비되는 대로 순차 등록될 예정입니다.
+                마감 자가점검 리스트는 현재 준비 중이며, 곧 등록될 예정입니다.
               </p>
             </div>
 

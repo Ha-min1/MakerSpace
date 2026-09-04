@@ -45,14 +45,6 @@ export const ManualStepCard: React.FC<ManualStepCardProps> = ({
           <span className="px-2.5 py-1 text-xs font-medium rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
             {step.category}
           </span>
-
-          {/* Time Estimate */}
-          {step.estimatedMinutes && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-neutral-400 font-medium">
-              <Clock className="w-3 h-3 text-neutral-400" />
-              약 {step.estimatedMinutes}분 소요
-            </span>
-          )}
         </div>
 
         {/* Interactive Checkbox for Web */}
