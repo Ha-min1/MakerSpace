@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, AlertTriangle, Lightbulb, CheckCircle2, Circle } from "lucide-react";
+import { Clock, AlertTriangle, Lightbulb, CheckCircle2, Circle, ExternalLink } from "lucide-react";
 import { ManualStep } from "@/data/openingManual";
 import { ManualImage } from "./ManualImage";
 
@@ -100,6 +100,21 @@ export const ManualStepCard: React.FC<ManualStepCardProps> = ({
             {step.description}
           </p>
 
+          {/* External Link Button if provided */}
+          {step.linkUrl && (
+            <div className="pt-1">
+              <a
+                href={step.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold transition-all shadow-2xs hover:shadow-xs"
+              >
+                <span>{step.linkText || "관련 사이트 바로가기"}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
           {/* Check Points */}
           {step.checkPoints.length > 0 && (
             <div className="rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/40 p-4 border border-neutral-100 dark:border-neutral-800/80">
@@ -136,7 +151,7 @@ export const ManualStepCard: React.FC<ManualStepCardProps> = ({
             <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border-l-4 border-emerald-600 text-emerald-900 dark:text-emerald-200 text-xs leading-relaxed">
               <Lightbulb className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
               <div>
-                <strong className="font-semibold block mb-0.5">운영 노하우 (Tip)</strong>
+                <strong className="font-semibold block mb-0.5">운영 안내 (Tip)</strong>
                 {step.tip}
               </div>
             </div>

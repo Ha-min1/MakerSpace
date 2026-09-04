@@ -1,0 +1,408 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { ManualStep, manualMeta } from "@/data/openingManual";
+import { ManualHeader } from "@/components/ManualHeader";
+import { ManualProgressBar } from "@/components/ManualProgressBar";
+import { ManualStepCard } from "@/components/ManualStepCard";
+import { ImageLightboxModal } from "@/components/ImageLightboxModal";
+import { UploadGuideModal } from "@/components/UploadGuideModal";
+import {
+  Mail,
+  ShieldAlert,
+  ArrowUp,
+  FileCheck2,
+  ExternalLink,
+  Phone,
+  MapPin,
+  Building2
+} from "lucide-react";
+
+type ManualTab = "opening" | "closing" | "staff";
+
+interface TabInfo {
+  id: ManualTab;
+  title: string;
+  badge?: string;
+  desc: string;
+  items: string[];
+}
+
+const TA_3_TABS: TabInfo[] = [
+  {
+    id: "opening",
+    title: "오픈 자가점검",
+    desc: "출근 직후 행정실 확인, 시설 개방, 조명, 공조 환기, 3D프린터실 점검 등 일일 오픈 루틴",
+    items: [
+      "행정 문의 공식 사이트 안내 및 117호 행정실 확인",
+      "메인 오픈 작업 공간 및 실내 조명 점등",
+      "실습 구역 스위치 점검 및 공조 배기 가동",
+      "115호 3D프린터실 도어락 및 입구 점검",
+      "신규 사진 추가 시 자동 확장되는 점검 항목"
+    ],
+  },
+  {
+    id: "closing",
+    title: "마감 자가점검",
+    badge: "준비 중",
+    desc: "퇴근 전 잔류 이용자 퇴실, 전체 장비 소등, 가스/전력 차단 및 야간 출력 안전 확인",
+    items: [
+      "야간 예약 출력 3D프린터 설정 및 화재 감지 확인",
+      "레이저 가공기 칠러 및 집진기 전원 OFF",
+      "납땜 인두기 전원 및 화학 약품 보관함 잠금",
+      "창문 및 자동문 락 확인",
+      "전체 소등 및 경비 보안 시스템 세팅"
+    ],
+  },
+  {
+    id: "staff",
+    title: "조교/근로학생 업무 매뉴얼",
+    badge: "준비 중",
+    desc: "이용자 안전교육 이수 확인, 장비 사용 지도, 노쇼 규정, 소모품 수령 및 비상 프로토콜",
+    items: [
+      "학생 안전교육 이수증 조회 및 출입 지도 절차",
+      "보안경/작업복 미착용 시 이용 제한 규정",
+      "예약 노쇼(No-Show) 처리 및 패널티 부여 지침",
+      "비상 상황(화재, 부상) 발생 시 조하민 조교 핫라인 및 119 보고 요령"
+    ],
+  },
+];
+
+interface ManualViewerProps {
+  initialSteps: ManualStep[];
+}
+
+export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
+  const [completedIds, setCompletedIds] = useState<number[]>([]);
+  const [zoomedImage, setZoomedImage] = useState<{ src: string; title: string } | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ManualTab>("opening");
+  const [previewTab, setPreviewTab] = useState<TabInfo | null>(null);
+
+  // Load saved checklist from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ku_makerspace_opening_checks");
+      if (saved) {
+        setCompletedIds(JSON.parse(saved));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleToggleComplete = (id: number) => {
+    setCompletedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
+      try {
+        localStorage.setItem("ku_makerspace_opening_checks", JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const handleReset = () => {
+    if (confirm("오픈 자가점검 리스트를 모두 초기화하시겠습니까?")) {
+      setCompletedIds([]);
+      try {
+        localStorage.removeItem("ku_makerspace_opening_checks");
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handleStepClick = (id: number) => {
+    const el = document.getElementById(`step-${id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  return (
+    <div className="min-h-screen bg-[#fafbfc] dark:bg-[#0b100d] text-neutral-900 dark:text-neutral-100 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      {/* Top Navbar */}
+      <nav className="no-print sticky top-0 z-40 border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md transition-colors">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          {/* Brand */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-800 text-white font-black text-sm flex items-center justify-center shadow-xs">
+              KU
+            </div>
+            <div>
+              <div className="text-sm font-extrabold tracking-tight text-neutral-900 dark:text-white flex items-center gap-2">
+                건국대학교 메이커스페이스
+                <span className="hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/60 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
+                  스태프 포털
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-400 font-medium">
+                운영 SOP & 자가점검 시스템
+              </p>
+            </div>
+          </div>
+
+          {/* Right Action */}
+          <div className="flex items-center gap-3">
+            <a
+              href={manualMeta.officialSiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 transition-all inline-flex items-center gap-1.5"
+            >
+              <span>공식 홈페이지</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <button
+              onClick={() => setIsGuideOpen(true)}
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-all cursor-pointer"
+            >
+              사진 가이드
+            </button>
+          </div>
+        </div>
+
+        {/* 3대 핵심 상단 점검 메뉴 (오픈 자가점검 / 마감 자가점검 / 조교·근로학생 업무 매뉴얼) */}
+        <div className="border-t border-neutral-100 dark:border-neutral-800/80 bg-neutral-50/70 dark:bg-neutral-900/50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 py-2">
+            {TA_3_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    if (tab.id === "opening") {
+                      setActiveTab("opening");
+                    } else {
+                      setPreviewTab(tab);
+                    }
+                  }}
+                  type="button"
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600"
+                  }`}
+                >
+                  <span>{tab.title}</span>
+                  {tab.badge && !isActive && (
+                    <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-neutral-100 text-neutral-500 dark:bg-neutral-700 dark:text-neutral-300">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8">
+        {/* Header Section */}
+        <ManualHeader
+          completedCount={completedIds.length}
+          totalCount={initialSteps.length}
+          onReset={handleReset}
+          onOpenGuide={() => setIsGuideOpen(true)}
+        />
+
+        {/* Progress Bar & Quick Step Access */}
+        <ManualProgressBar
+          steps={initialSteps}
+          completedIds={completedIds}
+          onStepClick={handleStepClick}
+        />
+
+        {/* Dynamic Step-by-step Cards (Automatically expanded by images!) */}
+        <div className="space-y-6">
+          {initialSteps.map((step) => (
+            <ManualStepCard
+              key={step.id}
+              step={step}
+              isCompleted={completedIds.includes(step.id)}
+              onToggleComplete={handleToggleComplete}
+              onZoomImage={(src, title) => setZoomedImage({ src, title })}
+            />
+          ))}
+        </div>
+
+        {/* Bottom Emergency & Manager Contact Card */}
+        <div className="mt-12 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 sm:p-8 no-print shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-100 dark:border-neutral-800">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  오픈 자가점검 완료 및 행정 문의처
+                </h3>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                점검 도중 장비 이상 또는 행정 문의 발생 시 아래 연락처로 즉시 알려주세요.
+              </p>
+            </div>
+
+            <button
+              onClick={scrollToTop}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors cursor-pointer self-start sm:self-auto"
+            >
+              <ArrowUp className="w-3.5 h-3.5" />
+              맨 위로 가기
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
+            {/* Manager Contact Box */}
+            <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/70 dark:border-neutral-800 flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                <Mail className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold text-neutral-400 block uppercase">
+                  메이커스페이스 총괄 담당
+                </span>
+                <strong className="text-sm font-bold text-neutral-900 dark:text-white block mt-0.5">
+                  {manualMeta.managerName}
+                </strong>
+                <a
+                  href={`mailto:${manualMeta.managerEmail}`}
+                  className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline mt-0.5 block font-mono"
+                >
+                  {manualMeta.managerEmail}
+                </a>
+              </div>
+            </div>
+
+            {/* Official Center Administration Info Box */}
+            <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/70 dark:border-neutral-800 flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold text-neutral-400 block uppercase">
+                  센터 행정 문의 (공식)
+                </span>
+                <strong className="text-sm font-bold text-neutral-900 dark:text-white block mt-0.5">
+                  건국대학교 메이커스페이스센터
+                </strong>
+                <a
+                  href={manualMeta.officialSiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline mt-0.5 block truncate max-w-[220px]"
+                >
+                  {manualMeta.officialSiteUrl}
+                </a>
+                <span className="text-[11px] text-neutral-400 block mt-0.5">
+                  대표 TEL. {manualMeta.tel}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="no-print border-t border-neutral-200/80 dark:border-neutral-800/80 bg-white dark:bg-neutral-900 py-6 text-center text-xs text-neutral-500 dark:text-neutral-400 mt-8">
+        <div className="max-w-5xl mx-auto px-4 space-y-1.5">
+          <p className="font-semibold text-neutral-800 dark:text-neutral-200">
+            건국대학교 메이커스페이스 센터 (Konkuk University MakerSpace)
+          </p>
+          <p className="text-[11px] text-neutral-500">
+            {manualMeta.address} • TEL. {manualMeta.tel}
+          </p>
+          <p className="text-[11px] text-neutral-500">
+            총괄 담당: {manualMeta.managerName} (<a href={`mailto:${manualMeta.managerEmail}`} className="hover:underline text-emerald-700 dark:text-emerald-400">{manualMeta.managerEmail}</a>)
+            &nbsp;|&nbsp;
+            <a href={manualMeta.officialSiteUrl} target="_blank" rel="noopener noreferrer" className="hover:underline text-emerald-700 dark:text-emerald-400">
+              공식 웹사이트 바로가기
+            </a>
+          </p>
+          <p className="text-[10px] text-neutral-400">
+            © 2026 Konkuk MakerSpace Center. All rights reserved.
+          </p>
+        </div>
+      </footer>
+
+      {/* Preview Modal for Closing and Staff Manuals */}
+      {previewTab && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          onClick={() => setPreviewTab(null)}
+        >
+          <div
+            className="relative max-w-md w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-xl overflow-hidden p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-2">
+                <FileCheck2 className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  {previewTab.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setPreviewTab(null)}
+                className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-white"
+              >
+                닫기
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3 text-xs text-neutral-600 dark:text-neutral-300">
+              <p className="leading-relaxed text-neutral-700 dark:text-neutral-300 font-medium">
+                {previewTab.desc}
+              </p>
+
+              <div className="bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl p-4 border border-neutral-200/70 dark:border-neutral-800">
+                <div className="font-bold text-neutral-800 dark:text-neutral-200 mb-2 uppercase tracking-wide text-[11px]">
+                  예정 점검 항목:
+                </div>
+                <ul className="space-y-1.5">
+                  {previewTab.items.map((item, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="text-[11px] text-neutral-400">
+                해당 매뉴얼 내용 및 사진도 준비되는 대로 순차 등록될 예정입니다.
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 flex justify-end">
+              <button
+                onClick={() => setPreviewTab(null)}
+                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      <ImageLightboxModal
+        src={zoomedImage?.src ?? null}
+        title={zoomedImage?.title ?? null}
+        onClose={() => setZoomedImage(null)}
+      />
+
+      {/* Upload Guide Modal */}
+      <UploadGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
+    </div>
+  );
+};
