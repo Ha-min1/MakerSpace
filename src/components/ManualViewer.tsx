@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ManualStep, manualMeta } from "@/data/openingManual";
 import { ManualHeader } from "@/components/ManualHeader";
 import { ManualProgressBar } from "@/components/ManualProgressBar";
@@ -8,14 +8,16 @@ import { ManualStepCard } from "@/components/ManualStepCard";
 import { ImageLightboxModal } from "@/components/ImageLightboxModal";
 import { UploadGuideModal } from "@/components/UploadGuideModal";
 import { StaffManualView } from "@/components/StaffManualView";
+import { useInspectionSync } from "@/hooks/useInspectionSync";
 import {
   Mail,
   ArrowUp,
-  FileCheck2,
   ExternalLink,
   Building2,
   BookOpen,
-  CheckSquare
+  CheckSquare,
+  Moon,
+  SunMedium
 } from "lucide-react";
 
 type ManualTab = "opening" | "closing" | "staff";
@@ -31,35 +33,41 @@ interface TabInfo {
 const TA_3_TABS: TabInfo[] = [
   {
     id: "opening",
-    title: "오픈 자가점검",
-    desc: "출근 직후 행정실 확인, 시설 개방, 조명, 공조 환기 등 일일 오픈 루틴 (24개 항목)",
+    title: "🌅 오픈 자가점검",
+    badge: "10대 공간",
+    desc: "신공학관 정문 앞쪽 출입구 개방부터 10대 핵심 공간 조명·냉난방·장비 가동 일일 오픈 루틴",
     items: [
-      "사무실 좌측 기둥 불키기 (행정문의 공식 사이트 안내)",
-      "마주보는 반대편 기둥 불키기",
-      "직진후 좌회전 VR실 문 열기",
-      "문 열면 정면에 VR실 불 키는 버튼",
-      "나와서 좌회전 출입구 열려있는지 확인 및 불 키기",
-      "유턴해서 직진 후 왼쪽 기둥 코너에서 에어컨 3개 및 불 모두 키기",
-      "왼쪽 2단 좌석 좌측 끝쪽 기둥에서 좌석 하단 불 키기",
-      "8~24번 사진 매칭 점검 항목"
+      "1. 앞쪽 출입구 (FrontOpenDoor) 개방 및 복도 조명 ON",
+      "2. VR실 (VRSpace) 보안 해제 및 냉난방/조명 확인",
+      "3. 컨퍼런스홀 (ConferenceHall) 전원 스위치 ON",
+      "4. 행정실 (Office) 문 개방 및 출근 세팅",
+      "5. 프로젝트 공간 (ProjectSpace) 기둥 조명/2층 좌석/에어컨 ON",
+      "6. 3D프린터실 (3DSpace) 보안 해제 및 조명/항온항습 점검",
+      "7. 뒤쪽 출입구 (BackOpenDoor) 개방 및 조명 점등",
+      "8~10. 무한상상실, 오픈형 강의장, 2층 복도 점검"
     ],
   },
   {
     id: "closing",
-    title: "마감 자가점검",
-    badge: "준비 중",
-    desc: "퇴근 전 잔류 이용자 퇴실, 전체 장비 소등, 가스/전력 차단 및 야간 출력 안전 확인",
+    title: "🌙 마감 자가점검",
+    badge: "역순 소등",
+    desc: "오픈 루틴의 원상복구(역순): 2층 복도부터 앞쪽 출입구까지 순차 소등, 야간 3D 출력 안전, 전력 차단 및 도어락 잠금",
     items: [
-      "야간 예약 출력 3D프린터 설정 및 화재 감지 확인",
-      "레이저 가공기 칠러 및 집진기 전원 OFF",
-      "납땜 인두기 전원 및 화학 약품 보관함 잠금",
-      "창문 및 자동문 락 확인",
-      "전체 소등 및 경비 보안 시스템 세팅"
+      "1. 설계실 근처 2층 복도 소등 및 잔류자 확인",
+      "2. 오픈형 강의장 기자재 OFF 및 소등",
+      "3. 무한상상실 소등 및 문 잠금",
+      "4. 뒤쪽 출입구 소등 및 문 잠금",
+      "5. 3D프린터실 야간 출력 안전 확인 / 항온 유지 / 소등 / 문 잠금",
+      "6. 프로젝트 공간 에어컨 3대 OFF / 기둥 소등 (마주보는 스위치 유지)",
+      "7. 행정실 PC 종료, 일지 정리, 소등 및 문 잠금",
+      "8. 컨퍼런스홀 전원 스위치 OFF",
+      "9. VR실 장비 OFF, 소등 및 문 잠금",
+      "10. 앞쪽 주 출입구 최종 소등 및 보안 경비 세팅"
     ],
   },
   {
     id: "staff",
-    title: "조교/근로학생 업무 매뉴얼",
+    title: "📖 조교/근로학생 업무 매뉴얼",
     desc: "근로 기본 수칙, 근무 시간(학기/방학), 공간 미화 루틴, 3D프린터실·VR실 사용 신청 지침",
     items: [
       "근로 기본 수칙 (인사, 일정 조정 일주일 전, 방문객 응대, 부재중 메모)",
@@ -72,54 +80,43 @@ const TA_3_TABS: TabInfo[] = [
 
 interface ManualViewerProps {
   initialSteps: ManualStep[];
+  closingSteps?: ManualStep[];
 }
 
-export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
-  const [completedIds, setCompletedIds] = useState<number[]>([]);
+export const ManualViewer: React.FC<ManualViewerProps> = ({
+  initialSteps,
+  closingSteps = [],
+}) => {
+  const [activeTab, setActiveTab] = useState<ManualTab>("opening");
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  // 1. 오픈 자가점검 실시간 동기화
+  const openingSync = useInspectionSync({
+    type: "opening",
+    totalSteps: initialSteps.length,
+  });
+
+  // 2. 마감 자가점검 실시간 동기화
+  const closingSync = useInspectionSync({
+    type: "closing",
+    totalSteps: closingSteps.length > 0 ? closingSteps.length : 10,
+  });
+
+  // 현재 활성 탭에 따른 데이터 및 동기화 상태 분기
+  const currentSync = activeTab === "closing" ? closingSync : openingSync;
+  const currentSteps =
+    activeTab === "closing"
+      ? closingSteps.length > 0
+        ? closingSteps
+        : initialSteps
+      : initialSteps;
+
   const [zoomedImage, setZoomedImage] = useState<{
     src: string;
     title: string;
     images?: string[];
     currentIndex?: number;
   } | null>(null);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<ManualTab>("opening");
-  const [previewTab, setPreviewTab] = useState<TabInfo | null>(null);
-
-  // Load saved checklist from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("ku_makerspace_opening_checks");
-      if (saved) {
-        setCompletedIds(JSON.parse(saved));
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const handleToggleComplete = (id: number) => {
-    setCompletedIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
-      try {
-        localStorage.setItem("ku_makerspace_opening_checks", JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  };
-
-  const handleReset = () => {
-    if (confirm("오픈 자가점검 리스트를 모두 초기화하시겠습니까?")) {
-      setCompletedIds([]);
-      try {
-        localStorage.removeItem("ku_makerspace_opening_checks");
-      } catch {
-        // ignore
-      }
-    }
-  };
 
   const handleStepClick = (id: number) => {
     const el = document.getElementById(`step-${id}`);
@@ -150,7 +147,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
                 </span>
               </div>
               <p className="text-[11px] text-neutral-400 font-medium">
-                운영 SOP & 자가점검 시스템
+                운영 SOP & 자가점검 시스템 (10대 공간 연동)
               </p>
             </div>
           </div>
@@ -177,31 +174,32 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
 
         {/* 3대 핵심 상단 점검 메뉴 (오픈 자가점검 / 마감 자가점검 / 조교·근로학생 업무 매뉴얼) */}
         <div className="border-t border-neutral-100 dark:border-neutral-800/80 bg-neutral-50/70 dark:bg-neutral-900/50">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 py-2">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 py-2 overflow-x-auto">
             {TA_3_TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => {
-                    if (tab.id === "opening" || tab.id === "staff") {
-                      setActiveTab(tab.id);
-                    } else {
-                      setPreviewTab(tab);
-                    }
-                  }}
+                  onClick={() => setActiveTab(tab.id)}
                   type="button"
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                     isActive
                       ? "bg-emerald-700 text-white shadow-xs"
                       : "bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600"
                   }`}
                 >
-                  {tab.id === "opening" && <CheckSquare className="w-3.5 h-3.5" />}
+                  {tab.id === "opening" && <SunMedium className="w-3.5 h-3.5" />}
+                  {tab.id === "closing" && <Moon className="w-3.5 h-3.5" />}
                   {tab.id === "staff" && <BookOpen className="w-3.5 h-3.5" />}
                   <span>{tab.title}</span>
-                  {tab.badge && !isActive && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-neutral-100 text-neutral-500 dark:bg-neutral-700 dark:text-neutral-300">
+                  {tab.badge && (
+                    <span
+                      className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                        isActive
+                          ? "bg-emerald-800 text-emerald-100"
+                          : "bg-neutral-100 text-neutral-500 dark:bg-neutral-700 dark:text-neutral-300"
+                      }`}
+                    >
                       {tab.badge}
                     </span>
                   )}
@@ -214,32 +212,36 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8">
-        {/* TAB 1: 오픈 자가점검 */}
-        {activeTab === "opening" && (
+        {/* TAB 1 & 2: 오픈 자가점검 또는 마감 자가점검 */}
+        {(activeTab === "opening" || activeTab === "closing") && (
           <div className="space-y-6">
             {/* Header Section */}
             <ManualHeader
-              completedCount={completedIds.length}
-              totalCount={initialSteps.length}
-              onReset={handleReset}
+              completedCount={currentSync.completedIds.length}
+              totalCount={currentSteps.length}
+              inspectorName={currentSync.inspectorName}
+              onInspectorNameChange={currentSync.setInspectorName}
+              connectionStatus={currentSync.connectionStatus}
+              onReset={currentSync.resetChecks}
               onOpenGuide={() => setIsGuideOpen(true)}
             />
 
             {/* Progress Bar & Quick Step Access */}
             <ManualProgressBar
-              steps={initialSteps}
-              completedIds={completedIds}
+              steps={currentSteps}
+              completedIds={currentSync.completedIds}
               onStepClick={handleStepClick}
             />
 
-            {/* Dynamic Step Cards (1 to 24) */}
+            {/* Dynamic Step Cards (10대 공간 매칭) */}
             <div className="space-y-6">
-              {initialSteps.map((step) => (
+              {currentSteps.map((step) => (
                 <ManualStepCard
                   key={step.id}
                   step={step}
-                  isCompleted={completedIds.includes(step.id)}
-                  onToggleComplete={handleToggleComplete}
+                  isCompleted={currentSync.completedIds.includes(step.id)}
+                  checkedBy={currentSync.checkDetails[step.id]?.checkedBy}
+                  onToggleComplete={currentSync.toggleStep}
                   onZoomImage={(src, title, stepImages, initialIndex) =>
                     setZoomedImage({
                       src,
@@ -254,7 +256,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
           </div>
         )}
 
-        {/* TAB 2: 조교 / 근로학생 업무 매뉴얼 */}
+        {/* TAB 3: 조교 / 근로학생 업무 매뉴얼 */}
         {activeTab === "staff" && (
           <StaffManualView onPrint={() => window.print()} />
         )}
@@ -355,67 +357,6 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({ initialSteps }) => {
           </p>
         </div>
       </footer>
-
-      {/* Preview Modal for Closing Manual */}
-      {previewTab && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
-          onClick={() => setPreviewTab(null)}
-        >
-          <div
-            className="relative max-w-md w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-xl overflow-hidden p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
-              <div className="flex items-center gap-2">
-                <FileCheck2 className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                  {previewTab.title}
-                </h3>
-              </div>
-              <button
-                onClick={() => setPreviewTab(null)}
-                className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-white"
-              >
-                닫기
-              </button>
-            </div>
-
-            <div className="py-4 space-y-3 text-xs text-neutral-600 dark:text-neutral-300">
-              <p className="leading-relaxed text-neutral-700 dark:text-neutral-300 font-medium">
-                {previewTab.desc}
-              </p>
-
-              <div className="bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl p-4 border border-neutral-200/70 dark:border-neutral-800">
-                <div className="font-bold text-neutral-800 dark:text-neutral-200 mb-2 uppercase tracking-wide text-[11px]">
-                  예정 점검 항목:
-                </div>
-                <ul className="space-y-1.5">
-                  {previewTab.items.map((item, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <p className="text-[11px] text-neutral-400">
-                마감 자가점검 리스트는 현재 준비 중이며, 곧 등록될 예정입니다.
-              </p>
-            </div>
-
-            <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 flex justify-end">
-              <button
-                onClick={() => setPreviewTab(null)}
-                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors cursor-pointer"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Lightbox Modal */}
       <ImageLightboxModal

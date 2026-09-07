@@ -8,6 +8,7 @@ import { ManualImage } from "./ManualImage";
 interface ManualStepCardProps {
   step: ManualStep;
   isCompleted: boolean;
+  checkedBy?: string | null;
   onToggleComplete: (id: number) => void;
   onZoomImage: (src: string, title: string, stepImages?: string[], initialIndex?: number) => void;
 }
@@ -15,6 +16,7 @@ interface ManualStepCardProps {
 export const ManualStepCard: React.FC<ManualStepCardProps> = ({
   step,
   isCompleted,
+  checkedBy,
   onToggleComplete,
   onZoomImage,
 }) => {
@@ -59,8 +61,15 @@ export const ManualStepCard: React.FC<ManualStepCardProps> = ({
         >
           {isCompleted ? (
             <>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>점검 완료</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>
+                점검 완료
+                {checkedBy && (
+                  <span className="ml-1.5 text-[11px] font-normal text-emerald-700/80 dark:text-emerald-400/80">
+                    ({checkedBy})
+                  </span>
+                )}
+              </span>
             </>
           ) : (
             <>

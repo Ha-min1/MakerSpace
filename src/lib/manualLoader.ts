@@ -1,42 +1,86 @@
 import fs from "fs";
 import path from "path";
-import { ManualStep, openingManualSteps } from "@/data/openingManual";
+import { ManualStep, openingManualSteps, SPACE_LOCATIONS } from "@/data/openingManual";
+import { closingManualSteps } from "@/data/closingManual";
 
-export interface ParsedImageFile {
+export interface ParsedManualImage {
   fileName: string;
-  stepId: number;
+  locationKey: string;
+  index: number;
   subParts: (number | string)[];
 }
 
 /**
- * Parses image filenames such as:
- * - OpeningManual_2.jpg -> stepId: 2, subParts: [] (기본 1번/왼쪽 사진)
- * - OpeningManual_2_1.jpg -> stepId: 2, subParts: [1] (2번 섹터 2번째 사진)
- * - OpeningManual_2_1_2.jpg -> stepId: 2, subParts: [1, 2] (3중 분할 3번째 사진)
- * - OpeningManual_2_2.jpg -> stepId: 2, subParts: [2]
+ * Parses image filenames matching the new guide format:
+ * - OpeningManual_{LocationKey}_{Index}.jpg (e.g. OpeningManual_FrontOpenDoor_1.jpg)
+ * - Also supports legacy format: OpeningManual_{StepId}_{SubIndex}.jpg
  */
-export function parseManualImageFileName(fileName: string): ParsedImageFile | null {
-  const match = fileName.match(/^OpeningManual_(\d+)(?:_(.+))?\.(jpg|jpeg|png|webp)$/i);
-  if (!match) return null;
+export function parseManualImageFileName(fileName: string): ParsedManualImage | null {
+  // New format: OpeningManual_{LocationKey}_{Index}.(jpg|jpeg|png|webp)
+  // e.g. OpeningManual_FrontOpenDoor_1.jpg, OpeningManual_3DSpace_2.jpg
+  const namedMatch = fileName.match(
+    /^OpeningManual_([a-zA-Z0-9]+)(?:_(\d+))?(?:_(.+))?\.(jpg|jpeg|png|webp)$/i
+  );
 
-  const stepId = parseInt(match[1], 10);
-  const subStr = match[2];
-  const subParts: (number | string)[] = subStr
-    ? subStr.split("_").map((part) => {
-        const num = parseInt(part, 10);
-        return isNaN(num) ? part.toLowerCase() : num;
-      })
-    : [];
+  if (namedMatch) {
+    const rawKey = namedMatch[1];
+    const indexStr = namedMatch[2];
+    const extraSub = namedMatch[3];
 
-  return { fileName, stepId, subParts };
+    // Check if rawKey matches one of our known space keys (case-insensitive)
+    const matchedSpace = SPACE_LOCATIONS.find(
+      (s) => s.key.toLowerCase() === rawKey.toLowerCase()
+    );
+
+    if (matchedSpace) {
+      const index = indexStr ? parseInt(indexStr, 10) : 1;
+      const subParts: (number | string)[] = extraSub
+        ? extraSub.split("_").map((p) => {
+            const n = parseInt(p, 10);
+            return isNaN(n) ? p.toLowerCase() : n;
+          })
+        : [];
+
+      return {
+        fileName,
+        locationKey: matchedSpace.key,
+        index,
+        subParts,
+      };
+    }
+  }
+
+  // Legacy format fallback: OpeningManual_{number}.jpg
+  const legacyMatch = fileName.match(/^OpeningManual_(\d+)(?:_(.+))?\.(jpg|jpeg|png|webp)$/i);
+  if (legacyMatch) {
+    const stepNum = parseInt(legacyMatch[1], 10);
+    const spaceByOrder = SPACE_LOCATIONS.find((s) => s.order === stepNum);
+    const locationKey = spaceByOrder ? spaceByOrder.key : `Step_${stepNum}`;
+    const extraSub = legacyMatch[2];
+    const subParts: (number | string)[] = extraSub
+      ? extraSub.split("_").map((p) => {
+          const n = parseInt(p, 10);
+          return isNaN(n) ? p.toLowerCase() : n;
+        })
+      : [];
+
+    return {
+      fileName,
+      locationKey,
+      index: subParts.length > 0 && typeof subParts[0] === "number" ? subParts[0] : 1,
+      subParts,
+    };
+  }
+
+  return null;
 }
 
 /**
- * Sorts manual image files naturally so that:
- * 1. Base image (OpeningManual_2.jpg) comes first (subParts: [])
- * 2. Sub-images follow by segments (2_1.jpg -> 2_1_2.jpg -> 2_2.jpg)
+ * Sort images belonging to the same location:
+ * 1. Primary order by index (1 -> 2 -> 3)
+ * 2. Secondary order by subParts
  */
-export function compareManualImageFiles(fileA: string, fileB: string): number {
+export function compareLocationImages(fileA: string, fileB: string): number {
   const a = parseManualImageFileName(fileA);
   const b = parseManualImageFileName(fileB);
 
@@ -44,13 +88,9 @@ export function compareManualImageFiles(fileA: string, fileB: string): number {
   if (!a) return 1;
   if (!b) return -1;
 
-  if (a.stepId !== b.stepId) {
-    return a.stepId - b.stepId;
+  if (a.index !== b.index) {
+    return a.index - b.index;
   }
-
-  // Base image without subParts always comes first
-  if (a.subParts.length === 0 && b.subParts.length > 0) return -1;
-  if (a.subParts.length > 0 && b.subParts.length === 0) return 1;
 
   const minLen = Math.min(a.subParts.length, b.subParts.length);
   for (let i = 0; i < minLen; i++) {
@@ -67,39 +107,47 @@ export function compareManualImageFiles(fileA: string, fileB: string): number {
   return a.subParts.length - b.subParts.length;
 }
 
-export function getDynamicOpeningManualSteps(): ManualStep[] {
+function getManualFiles(): string[] {
   const manualDir = path.join(process.cwd(), "public", "manual");
-  let existingFiles: string[] = [];
-
   try {
     if (fs.existsSync(manualDir)) {
-      existingFiles = fs.readdirSync(manualDir);
+      return fs.readdirSync(manualDir);
     }
   } catch (err) {
     console.error("Failed to read public/manual:", err);
   }
+  return [];
+}
 
-  // Group files by stepId
-  const imageMap = new Map<number, string[]>();
+/**
+ * Dynamically loads Opening Manual Steps and maps all photos from public/manual/
+ */
+export function getDynamicOpeningManualSteps(): ManualStep[] {
+  const existingFiles = getManualFiles();
+
+  // Group image files by locationKey
+  const locationImageMap = new Map<string, string[]>();
 
   for (const file of existingFiles) {
     const parsed = parseManualImageFileName(file);
     if (parsed) {
-      if (!imageMap.has(parsed.stepId)) {
-        imageMap.set(parsed.stepId, []);
+      if (!locationImageMap.has(parsed.locationKey)) {
+        locationImageMap.set(parsed.locationKey, []);
       }
-      imageMap.get(parsed.stepId)!.push(file);
+      locationImageMap.get(parsed.locationKey)!.push(file);
     }
   }
 
-  // Sort images inside each step group
-  for (const files of imageMap.values()) {
-    files.sort(compareManualImageFiles);
+  // Sort images in each location group
+  for (const files of locationImageMap.values()) {
+    files.sort(compareLocationImages);
   }
 
-  // Clone defined steps and attach matched images
+  // Attach images to predefined openingManualSteps
   const steps: ManualStep[] = openingManualSteps.map((step) => {
-    const matchedFiles = imageMap.get(step.id);
+    const key = step.locationKey;
+    const matchedFiles = key ? locationImageMap.get(key) : undefined;
+
     const images =
       matchedFiles && matchedFiles.length > 0
         ? matchedFiles
@@ -116,30 +164,49 @@ export function getDynamicOpeningManualSteps(): ManualStep[] {
     };
   });
 
-  // Automatically append newly added images that don't have defined text yet!
-  const detectedIds = Array.from(imageMap.keys()).sort((a, b) => a - b);
-  for (const id of detectedIds) {
-    const exists = steps.some((s) => s.id === id);
-    if (!exists) {
-      const files = imageMap.get(id)!;
-      const fileSummary = files.join(", ");
-      steps.push({
-        id,
-        title: `점검 항목 ${id} (신규 사진 등록됨)`,
-        category: "추가 점검",
-        description: `사진(${fileSummary})이 등록되었습니다. 이 항목의 세부 점검 지침 및 안내 텍스트를 업데이트해 주세요.`,
-        checkPoints: [
-          `현장 사진(${fileSummary}) 대조 확인`,
-          "해당 구역/장비 안전 상태 점검 및 확인",
-        ],
-        imageName: files[0],
-        imageNames: files,
-        estimatedMinutes: 3,
-      });
+  return steps;
+}
+
+/**
+ * Dynamically loads Closing Manual Steps (reverse restoration routine)
+ */
+export function getDynamicClosingManualSteps(): ManualStep[] {
+  const existingFiles = getManualFiles();
+
+  const locationImageMap = new Map<string, string[]>();
+  for (const file of existingFiles) {
+    const parsed = parseManualImageFileName(file);
+    if (parsed) {
+      if (!locationImageMap.has(parsed.locationKey)) {
+        locationImageMap.set(parsed.locationKey, []);
+      }
+      locationImageMap.get(parsed.locationKey)!.push(file);
     }
   }
 
-  // Sort by id ascending
-  steps.sort((a, b) => a.id - b.id);
+  for (const files of locationImageMap.values()) {
+    files.sort(compareLocationImages);
+  }
+
+  const steps: ManualStep[] = closingManualSteps.map((step) => {
+    const key = step.locationKey;
+    const matchedFiles = key ? locationImageMap.get(key) : undefined;
+
+    const images =
+      matchedFiles && matchedFiles.length > 0
+        ? matchedFiles
+        : step.imageNames && step.imageNames.length > 0
+        ? step.imageNames
+        : step.imageName
+        ? [step.imageName]
+        : [];
+
+    return {
+      ...step,
+      imageName: images[0] || step.imageName,
+      imageNames: images,
+    };
+  });
+
   return steps;
 }

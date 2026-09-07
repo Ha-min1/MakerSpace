@@ -203,3 +203,45 @@
    - 모달 내부에서 해당 섹터의 모든 사진을 좌/우 화살표 버튼 및 키보드 방향키(`←`, `→`)로 즉시 넘겨볼 수 있는 슬라이더 기능 내장.
 4. **Git 버전 관리 추적 동기화**:
    - `OpeningManual_2_1.jpg`, `OpeningManual_3_1.jpg` 등 신규 서브 사진 Git 추적(`git add`) 완료.
+
+## 13. Supabase 실시간 DB 연동 아키텍처 및 이름 기반 점검 시스템 구축 (2026-09-07 업데이트)
+
+1. **Supabase 연동 데이터 모델 및 스키마 (`supabase/schema.sql`)**:
+   - `daily_inspections`: 일자별/유형별(오픈, 마감) 점검 세션 관리. 추후 Auth 확장을 위한 `user_id (UUID, nullable)` 포함.
+   - `inspection_checks`: 스텝별 체크 여부(`is_checked`), 체크 시각(`checked_at`), 체크자 성명(`checked_by`).
+   - RLS(Row Level Security) 설정 및 Supabase Realtime Publication 등록.
+2. **무지연 낙관적 업데이트 & 실시간 동기화 훅 (`src/hooks/useInspectionSync.ts`)**:
+   - 체크박스 클릭 즉시 0ms 로컬 반영 후 백그라운드 DB upsert.
+   - 다른 스태프(모바일/PC)가 체크 시 `postgres_changes` WebSocket을 통해 실시간 동기화.
+   - Supabase 키 미설정 또는 네트워크 단절 시 `localStorage` 모드로 100% 안전하게 Graceful Fallback.
+3. **이름 기입 원칙 반영 (No-Login First UI)**:
+   - 복잡한 로그인 없이 헤더에서 점검자 이름(예: `김근로`)을 간편하게 입력/수정.
+   - 브라우저에 이름 자동 기억 및 체크 항목에 `점검 완료 (이름)` 형태로 스태프 간 투명한 점검자 표기.
+   - **DB 기록 명시 안내**: "출근 내역은 DB에 시간과 함께 이름이 기록됩니다."를 웹 헤더 및 A4 PDF 인쇄 서명란 양쪽에 명시.
+   - PDF 인쇄 시 점검자 성명 자동 반영.
+
+## 14. 사진 관리 가이드(PhotoManageGuide) 기반 10대 공간 체계화 및 마감 역순 매뉴얼 구축 (2026-09-07 업데이트)
+
+1. **공간 기반 사진 네이밍 규격 (`OpeningManual_{장소이름}_{순서}.jpg`) 완벽 적용**:
+   - 기존의 단순 숫자 기반 번호에서 공식 홈페이지 10대 공간 키(PascalCase) 체계로 전환:
+     - 1. `FrontOpenDoor` (앞쪽 출입구, 2장)
+     - 2. `VRSpace` (VR실, 2장)
+     - 3. `ConferenceHall` (컨퍼런스홀, 2장)
+     - 4. `Office` (행정실, 1장)
+     - 5. `ProjectSpace` (프로젝트 공간, 4장)
+     - 6. `3DSpace` (3D프린터실, 3장)
+     - 7. `BackOpenDoor` (뒤쪽 출입구, 1장)
+     - 8. `InfiniteImagination` (무한상상실, 2장)
+     - 9. `OpenedLecture` (오픈형 강의장, 2장)
+     - 10. `SecondFloorHall` (설계실 근처 2층 복도, 2장)
+   - `OpeningManual_ConferenceHall_2.jpg` 리네이밍 및 총 21개 사진 100% 매칭 완료.
+2. **현장 맞춤형 오픈 매뉴얼 10단계 텍스트 100% 반영 (`src/data/openingManual.ts`)**:
+   - 신공학관 정문 통과 후 앞쪽 출입구 카드 접촉 보안 해제부터 10대 공간별 정밀 지침 적용.
+   - 프로젝트 공간 마주보는 반대편 기둥 스위치 조작 금지 경고, 3D프린터실 항온 유지 및 한봉원 연구원(010-9910-9707) 비상 핫라인 안내 수록.
+3. **출근 행동 원상복구(역순) 기반 마감 자가점검 정식 오픈 (`src/data/closingManual.ts`)**:
+   - 가이드 2번 원칙에 따라, 2층 복도(10번)부터 앞쪽 출입구(1번)까지 역순으로 소등, 잔류자 퇴실, 야간 3D 출력 안전, 전력 차단, 최종 보안 경비 세팅 루틴 구축.
+   - '마감 자가점검' 탭도 Supabase 실시간 DB 연동되는 실제 인터랙티브 체크리스트로 가동.
+4. **동적 로더 고도화 & 가이드 모달 갱신 (`src/lib/manualLoader.ts`, `UploadGuideModal.tsx`)**:
+   - 파일명 파싱 엔진을 공간 키 우선 파싱으로 고도화하고, 스태프 안내 가이드 모달에 10대 공간 키 목록 및 네이밍 규칙 수록.
+
+
