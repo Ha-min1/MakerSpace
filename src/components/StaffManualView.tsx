@@ -3,18 +3,10 @@
 import React from "react";
 import {
   Clock,
-  UserCheck,
-  Calendar,
-  MessageSquare,
-  PhoneCall,
   Sparkles,
   Printer,
-  CheckCircle2,
-  AlertCircle,
   FileText,
   Boxes,
-  HelpCircle,
-  Building,
   ShieldCheck,
   Check
 } from "lucide-react";

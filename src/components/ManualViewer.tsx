@@ -15,9 +15,9 @@ import {
   ExternalLink,
   Building2,
   BookOpen,
-  CheckSquare,
   Moon,
-  SunMedium
+  SunMedium,
+  Lock,
 } from "lucide-react";
 
 type ManualTab = "opening" | "closing" | "staff";
@@ -44,7 +44,7 @@ const TA_3_TABS: TabInfo[] = [
       "5. 프로젝트 공간 (ProjectSpace) 기둥 조명/2층 좌석/에어컨 ON",
       "6. 3D프린터실 (3DSpace) 보안 해제 및 조명/항온항습 점검",
       "7. 뒤쪽 출입구 (BackOpenDoor) 개방 및 조명 점등",
-      "8~10. 무한상상실, 오픈형 강의장, 2층 복도 점검"
+      "8~10. 무한상상실, 오픈형 강의장, 2층 복도 점검",
     ],
   },
   {
@@ -62,7 +62,7 @@ const TA_3_TABS: TabInfo[] = [
       "7. 행정실 PC 종료, 일지 정리, 소등 및 문 잠금",
       "8. 컨퍼런스홀 전원 스위치 OFF",
       "9. VR실 장비 OFF, 소등 및 문 잠금",
-      "10. 앞쪽 주 출입구 최종 소등 및 보안 경비 세팅"
+      "10. 앞쪽 주 출입구 최종 소등 및 보안 경비 세팅",
     ],
   },
   {
@@ -73,7 +73,7 @@ const TA_3_TABS: TabInfo[] = [
       "근로 기본 수칙 (인사, 일정 조정 일주일 전, 방문객 응대, 부재중 메모)",
       "근무 시간 규정 (근로학생 9~17:30 / 조교 9~20시)",
       "공간 미화 & 환경 정비 (오전 출근, 1층 청소, 20시 퇴근 소등)",
-      "공간 사용 안내 (3D프린터실 K-MOOC 4강 이수, VR실 신청서 및 1주 연장)"
+      "공간 사용 안내 (3D프린터실 K-MOOC 4강 이수, VR실 신청서 및 1주 연장)",
     ],
   },
 ];
@@ -101,6 +101,27 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({
     type: "closing",
     totalSteps: closingSteps.length > 0 ? closingSteps.length : 10,
   });
+
+  // 날짜 변경 시 두 동기화 훅 모두에 날짜를 동기화
+  const syncDateChange = (dateStr: string) => {
+    openingSync.setSelectedDate(dateStr);
+    closingSync.setSelectedDate(dateStr);
+  };
+
+  const handlePrevDay = () => {
+    openingSync.goToPrevDay();
+    closingSync.goToPrevDay();
+  };
+
+  const handleNextDay = () => {
+    openingSync.goToNextDay();
+    closingSync.goToNextDay();
+  };
+
+  const handleToday = () => {
+    openingSync.goToToday();
+    closingSync.goToToday();
+  };
 
   // 현재 활성 탭에 따른 데이터 및 동기화 상태 분기
   const currentSync = activeTab === "closing" ? closingSync : openingSync;
@@ -147,7 +168,7 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-neutral-400 font-medium">
-                운영 SOP & 자가점검 시스템 (10대 공간 연동)
+                운영 SOP & 자가점검 시스템 (대한민국 표준시 연동)
               </p>
             </div>
           </div>
@@ -224,7 +245,37 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({
               connectionStatus={currentSync.connectionStatus}
               onReset={currentSync.resetChecks}
               onOpenGuide={() => setIsGuideOpen(true)}
+              selectedDate={currentSync.selectedDate}
+              isToday={currentSync.isToday}
+              onPrevDay={handlePrevDay}
+              onNextDay={handleNextDay}
+              onToday={handleToday}
+              onSelectDate={syncDateChange}
             />
+
+            {/* 과거 날짜 조회 시 안내 배너 */}
+            {!currentSync.isToday && (
+              <div className="no-print rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 p-4 text-xs sm:text-sm text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center shrink-0">
+                    <Lock className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+                  </div>
+                  <div>
+                    <span className="font-bold">{currentSync.selectedDate}</span> 일자의 점검 내역을 확인하고 있습니다. (과거 누적 기록 보존 모드)
+                    <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80 mt-0.5">
+                      과거 기록은 훼손되지 않도록 수정 및 초기화가 잠겨 있습니다.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
+                >
+                  오늘 점검으로 이동
+                </button>
+              </div>
+            )}
 
             {/* Progress Bar & Quick Step Access */}
             <ManualProgressBar
@@ -241,6 +292,8 @@ export const ManualViewer: React.FC<ManualViewerProps> = ({
                   step={step}
                   isCompleted={currentSync.completedIds.includes(step.id)}
                   checkedBy={currentSync.checkDetails[step.id]?.checkedBy}
+                  checkedAt={currentSync.checkDetails[step.id]?.checkedAt}
+                  disabled={!currentSync.isToday}
                   onToggleComplete={currentSync.toggleStep}
                   onZoomImage={(src, title, stepImages, initialIndex) =>
                     setZoomedImage({

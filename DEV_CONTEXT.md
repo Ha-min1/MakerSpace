@@ -244,4 +244,32 @@
 4. **동적 로더 고도화 & 가이드 모달 갱신 (`src/lib/manualLoader.ts`, `UploadGuideModal.tsx`)**:
    - 파일명 파싱 엔진을 공간 키 우선 파싱으로 고도화하고, 스태프 안내 가이드 모달에 10대 공간 키 목록 및 네이밍 규칙 수록.
 
+## 15. 대한민국 표준시(KST) 표준화 및 일일 자가점검 자동 리셋/누적 보존 시스템 구축 (2026-09-07 업데이트)
+
+1. **대한민국 표준시(KST, Asia/Seoul, UTC+9) 전용 엔진 (`src/lib/dateUtils.ts`)**:
+   - `getKSTDateString()`: UTC 오차를 완벽히 배제하고 한국 시간 기준 정확한 `YYYY-MM-DD` 산출 (오전 9시 이전 전날로 잡히던 심각한 버그 해결).
+   - `getKSTISOString()`: 타임존 오프셋(`+09:00`)이 포함된 표준 ISO-8601 타임스탬프 기록.
+   - `getTimeUntilNextKSTMidnight()`: 매일 한국 시간 자정(00:00:00)까지 남은 ms를 정밀 계산하여 자정 시점 자동 리셋 지원.
+
+2. **일일 세션 분리 및 과거 기록 영구 보존 아키텍처 (`src/hooks/useInspectionSync.ts`)**:
+   - **날짜별 로컬스토리지 키 격리**: `ku_makerspace_${type}_checks_${selectedDate}`로 브라우저 캐시가 날짜 간 간섭하지 않도록 분리.
+   - **자정 자동 롤오버 (Midnight Auto-Rollover)**: 모바일/안내데스크 PC 화면을 켜둔 채 자정이 지나면 자동으로 다음 날의 새 빈 점검표로 자동 전환.
+   - **체크 초기화 안전화**: 오직 당일(오늘 KST) 세션만 초기화 허용하며, 과거 날짜의 출퇴근 기록은 덮어쓰거나 리셋할 수 없도록 원천 차단.
+
+3. **스태프 UI 고도화 (`ManualHeader.tsx`, `ManualStepCard.tsx`, `ManualViewer.tsx`)**:
+   - **날짜 네비게이터**: `[◀ 어제] 2026년 9월 7일 (월) [오늘] [내일 ▶]` 컨트롤러 탑재로 이전 날짜의 출퇴근 점검 기록을 웹에서 즉시 조회 가능.
+   - **과거 기록 보존 모드**: 오늘이 아닌 날짜 조회 시 읽기 전용 락(`Lock`) 배지 표시.
+   - **실시간 KST 시계**: 헤더에 `KST HH:mm:ss` 실시간 표시.
+   - **체크 시간 및 점검자 표시**: 체크 완료 항목에 `점검 완료 (근로장학생 · 09:15)` 형태로 시간 정보 시각화.
+
+4. **자정 일일 점검 세션 자동화 Cron 구축**:
+   - **Vercel Cron API Route (`src/app/api/cron/daily-session/route.ts` & `vercel.json`)**:
+     - 매일 KST 00:00(UTC 15:00, `0 15 * * *`)에 자동 실행되어 금일 `opening`/`closing` 세션을 DB에 선제 생성하고 전일 세션 감사 리포트 반환.
+     - `CRON_SECRET` 보안 인증 지원.
+   - **Supabase pg_cron 스크립트 (`supabase/cron.sql`)**:
+     - DB 내부에서 매일 자정 자동 실행 가능한 PostgreSQL 함수 및 cron 잡 생성 스크립트 제공.
+   - **Supabase 스키마 갱신 (`supabase/schema.sql`)**:
+     - 컬럼 기본값을 `timezone('Asia/Seoul', now())`로 최적화하고 관리자용 누적 요약 뷰(`v_daily_inspection_summary`) 추가.
+
+
 

@@ -1,14 +1,17 @@
 "use client";
 
 import React from "react";
-import { Clock, AlertTriangle, Lightbulb, CheckCircle2, Circle, ExternalLink } from "lucide-react";
+import { AlertTriangle, Lightbulb, CheckCircle2, Circle, ExternalLink } from "lucide-react";
 import { ManualStep } from "@/data/openingManual";
 import { ManualImage } from "./ManualImage";
+import { formatKSTTime } from "@/lib/dateUtils";
 
 interface ManualStepCardProps {
   step: ManualStep;
   isCompleted: boolean;
   checkedBy?: string | null;
+  checkedAt?: string | null;
+  disabled?: boolean;
   onToggleComplete: (id: number) => void;
   onZoomImage: (src: string, title: string, stepImages?: string[], initialIndex?: number) => void;
 }
@@ -17,9 +20,14 @@ export const ManualStepCard: React.FC<ManualStepCardProps> = ({
   step,
   isCompleted,
   checkedBy,
+  checkedAt,
+  disabled = false,
   onToggleComplete,
   onZoomImage,
 }) => {
+  const formattedTime = formatKSTTime(checkedAt);
+  const checkMeta = [checkedBy, formattedTime].filter(Boolean).join(" · ");
+
   return (
     <section
       id={`step-${step.id}`}
@@ -52,8 +60,11 @@ export const ManualStepCard: React.FC<ManualStepCardProps> = ({
         {/* Interactive Checkbox for Web */}
         <button
           onClick={() => onToggleComplete(step.id)}
+          disabled={disabled}
           type="button"
-          className={`no-print inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`no-print inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            disabled ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+          } ${
             isCompleted
               ? "bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
               : "bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200 dark:bg-neutral-800/80 dark:text-neutral-300 dark:border-neutral-700"
@@ -64,9 +75,9 @@ export const ManualStepCard: React.FC<ManualStepCardProps> = ({
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>
                 점검 완료
-                {checkedBy && (
+                {checkMeta && (
                   <span className="ml-1.5 text-[11px] font-normal text-emerald-700/80 dark:text-emerald-400/80">
-                    ({checkedBy})
+                    ({checkMeta})
                   </span>
                 )}
               </span>

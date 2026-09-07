@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, FolderPlus, HelpCircle, MapPin } from "lucide-react";
+import { X, FolderPlus, MapPin } from "lucide-react";
 import { manualMeta, SPACE_LOCATIONS } from "@/data/openingManual";
 
 interface UploadGuideModalProps {
