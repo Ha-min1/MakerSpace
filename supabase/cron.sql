@@ -79,8 +79,10 @@ SELECT cron.schedule(
     'SELECT public.create_daily_inspection_sessions();'
 );
 
--- 4. 등록된 크론 작업 확인 쿼리
--- SELECT * FROM cron.job;
+-- 4. 등록된 크론 작업 확인 (전체 스크립트 실행 시 결과 그리드에 자동 노출)
+SELECT jobid, jobname, schedule, active, command 
+FROM cron.job 
+WHERE jobname = 'daily-inspection-rollover';
 
--- 5. 크론 실행 이력 로그 확인 쿼리
+-- 5. [모니터링용] 자정 이후 실제 크론 실행 이력 로그 확인 (필요 시 단독 실행)
 -- SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
